@@ -26,12 +26,20 @@ fullHDCoordinatesWithInvertedAxis = [-y for y in fullHDCoordinates]
 pitchList = [lerpAxis(y,145,935,-165,165) for y in fullHDCoordinatesWithInvertedAxis]
 
 # Generate the Trombone champ file :
-header = '{"UNK1":0,"author":"","description":"","difficulty":5,"endpoint":14,"genre":"","lyrics":[],"name":"","notes":'
-bottom = ',"savednotespacing":120,"shortName":"","tempo":120,"timesig":2,"trackRef":"CustomSongs","year":1999}'
-notes = []
+author = "Peter Lambert"
+description = "A map based on osu! tutorial, that you can play as if you would have a mouse, even though x axis does not matters."
+difficulty = "7"
 minimalDurationInBars = 0.25
+endpoint = mapTimingsInBars[-1] + minimalDurationInBars # = last note timing + its duration (assuming that we only simple hits, refactor later for holding a note)
+name = "osu! Tootorial"
+shortName = name
+year = 2007
+
+desc1 = '{"UNK1":0,"author": "' + author + '","description":"' + description + '","difficulty":'+ difficulty +',"endpoint":' + endpoint + ',"genre":"","lyrics":[],"name":"' + name + '","notes":'
+desc2 = ',"savednotespacing":120,"shortName":"' + shortName + '","tempo":' + mapBPM + ',"timesig":2,"trackRef":"CustomSongs","year":' + year + '}'
+notes = []
 for timeAsbars,pitch in zip(mapTimingsInBars, pitchList):
     notes.append([timeAsbars, minimalDurationInBars, pitch, 0, pitch])
-finalFileString = header + str(notes) + bottom
+finalFileString = desc1 + str(notes) + desc2
 with open("song.tmb", 'w') as f:
     f.write(finalFileString)
