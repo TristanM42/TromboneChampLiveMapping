@@ -1,3 +1,5 @@
+import pdb
+
 ''' Map an axis coordinates to notes (= pitch, in Trombone champ unit) and create the Trombone champ map file. '''
 
 def lerpAxis(position, minPosition, maxPosition, minPitch, maxPitch):
@@ -17,19 +19,19 @@ mapTimingsInBars = list(map(timeToBar, mapTimings))
 # Make sure that we start song at zero + one bar for example :
 barOffset = mapTimingsInBars[0]
 mapTimingsInBars = [b - barOffset + 1 for b in mapTimingsInBars]
-mapTimingsInBars = [ '%.2f' % e for e in mapTimingsInBars]
+mapTimingsInBars = [round(e,2) for e in mapTimingsInBars]
 
-# Convert Y axis to MIDI pitch : if using osu file, we probably need to convert from normalized space to Full HD resolution : "equivalent to a pixel when osu! is running in 640x480 resolution" + invert y axis
+# Convert Y axis to MIDI pitch : if using osu file, we probably need to convert from normalized space to Full HD resolution : "equivalent to a pixel when osu! is running in 640x480 resolution" => actually, max limits in x,y = (512,384) + invert y axis
 yNormalized = [96, 103, 129, 157, 129, 103, 96, 76, 154, 200, 257, 76, 76, 76, 76, 76, 76, 76, 76, 76, 76, 76, 74, 74, 74, 74, 74, 74, 96, 104, 123, 157, 124, 102, 93, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 96, 103, 129, 157, 129, 103, 96, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 96, 104, 123, 157, 124, 102, 93, 257, 152, 73, 159, 72, 256, 153, 72, 258, 153, 74, 155, 77, 256, 156, 75, 255, 153, 72, 154, 259, 258, 153, 72, 87, 96, 124, 157, 122, 93, 76, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 96, 104, 123, 157, 124, 102, 93, 80, 92, 124, 95, 92, 124, 154, 124, 124, 154, 167, 154, 87, 96, 124, 157, 122, 93, 76, 94, 125, 95, 92, 124, 154, 124, 124, 154, 167, 154, 87, 96, 124, 157, 122, 93, 76] # regex : "^\d+,(\d+),\d+,.*$\n" and keep group 1
-fullHDCoordinates = [y*1080/480 for y in yNormalized]
-fullHDCoordinatesWithInvertedAxis = [-y for y in fullHDCoordinates]
+fullHDCoordinates = [lerpAxis(y,0,384,125,125+841) for y in yNormalized]
+# fullHDCoordinatesWithInvertedAxis = [1080-y for y in fullHDCoordinates]
 # Let's convert from Full HD to pitch (yea i assume you all have a full HD resolution for now) : lowest octave is at y = 935 pixels and highest octave is at 145 pixels
-pitchList = [lerpAxis(y,145,935,-165,165) for y in fullHDCoordinatesWithInvertedAxis]
-pitchList = [ '%.2f' % e for e in pitchList]
+pitchList = [lerpAxis(y,145,935,-165,165) for y in fullHDCoordinates]
+pitchList = [round(e,2) for e in pitchList]
 
 # Generate the Trombone champ file :
 author = "Peter Lambert"
-description = "A map based on osu! tutorial, that you can play as if you would have a mouse, even though x axis does not matters."
+description = "A map based on osu! tutorial, that you can play as if you would have a mouse, even though x axis does not matter."
 difficulty = 7
 minimalDurationInBars = 0.25
 endpoint = mapTimingsInBars[-1] + minimalDurationInBars # = last note timing + its duration (assuming that we only simple hits, refactor later for holding a note)
@@ -37,9 +39,10 @@ genre = "Video game"
 name = "osu! Tootorial"
 shortName = name
 year = 2007
+trackRef = "osu!Tootorial" # folder name must match !
 
 desc1 = '{"UNK1":0,"author": "' + author + '","description":"' + description + '","difficulty":'+ str(difficulty) +',"endpoint":' + str(endpoint) + ',"genre":"' + genre + '","lyrics":[],"name":"' + name + '","notes":'
-desc2 = ',"savednotespacing":120,"shortName":"' + shortName + '","tempo":' + str(mapBPM) + ',"timesig":2,"trackRef":"CustomSongs","year":' + str(year) + '}'
+desc2 = ',"savednotespacing":120,"shortName":"' + shortName + '","tempo":' + str(mapBPM) + ',"timesig":2,"trackRef":"' + trackRef + '","year":' + str(year) + '}'
 notes = []
 for timeAsbars,pitch in zip(mapTimingsInBars, pitchList):
     notes.append([timeAsbars, minimalDurationInBars, pitch, 0, pitch])
