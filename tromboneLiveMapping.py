@@ -2,12 +2,47 @@ import pdb
 
 ''' Map an axis coordinates to notes (= pitch, in Trombone champ unit) and create the Trombone champ map file. '''
 
+# TODO :
+#   - quantizer except for sliders (= only for separated notes) from a scale (default being chromatic scale)
+#   - post editing to correct pitch with a global pitch offset (make a pitch list for every pitch start and another for every pitch end)
+#   - live mapping (with sliders)
+# others features :
+#   - extract melody (highest notes) from a midi
+#   - arpeggiator
+
+scaleIntervals = { # in half tones ; add octave (0+12) for repeating pattern without losing a note
+    "chromatic" : [0,1,2,3,4,5,6,7,8,9,10,11,12],
+    "major" : [0,2,4,5,7,9,11,12],
+    "minor" : [0,2,3,5,7,8,10,12],
+    "pentatonicMajor" : [0,3,5,7,10,12],
+}
+
+absoluteNotes = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"]
+
 def lerpAxis(position, minPosition, maxPosition, minPitch, maxPitch):
     lerpedPitch = (position-minPosition)/(maxPosition-minPosition)*(maxPitch-minPitch) + minPitch
     return lerpedPitch
 
-# Sequence of chromatic notes in trombone format : [Bar (time), Length, Pitch Start, Pitch Delta (angle), Pitch End] /!\ here, a bar is actually one beat, not 4 beats as we could expect (if signature is 4/4)
-# tromboneChromaticSequence = [[1,0.5,-165,0,-165],[1.5,0.5,-151.25,0,-151.25],[2,0.5,-137.5,0,-137.5],[2.5,0.5,-123.75,0,-123.75],[3,0.5,-110,0,-110],[3.5,0.5,-96.25,0,-96.25],[4,0.5,-82.5,0,-82.5],[4.5,0.5,-68.75,0,-68.75],[5,0.5,-55,0,-55],[5.5,0.5,-41.25,0,-41.25],[6,0.5,-27.5,0,-27.5],[6.5,0.5,-13.75,0,-13.75],[7,0.5,0,0,0],[7.5,0.5,13.75,0,13.75],[8,0.5,27.5,0,27.5],[8.5,0.5,41.25,0,41.25],[9,0.5,55,0,55],[9.5,0.5,68.75,0,68.75],[10,0.5,82.5,0,82.5],[10.5,0.5,96.25,0,96.25],[11,0.5,110,0,110],[11.5,0.5,123.75,0,123.75],[12,0.5,137.5,0,137.5],[12.5,0.5,151.25,0,151.25],[13,0.5,165,0,165]]
+def getPitchForScale(scaleName="chromatic", noteOffset="C"):
+    rootIndex = absoluteNotes.index(noteOffset)
+    return [n*13.75-165+rootIndex*13.75 for n in scaleIntervals[scaleName]] # root is always lowest C here
+
+def periodizeSerie(inputSerie, n, extraSteps=0):
+    ''' Extend the input serie n times with the same pattern (= repeat each local increase rate, periodically). Use extraSteps in case you need more accuracy, for iterations that are less than one period. /!\ Output is different of what would be a periodized function, since each new period applies the slope on its root. '''
+    periodizedSerie = inputSerie[:]
+    for j in range(n+1):
+        for i in range(len(inputSerie)-1):
+            if (j==n and i>=extraSteps): break
+            periodizedSerie.append(periodizedSerie[-1]+(inputSerie[i+1]-inputSerie[i]))
+    return periodizedSerie
+
+def quantizeNote(note, scalePitchList):
+    return min(scalePitchList, key=lambda x:abs(x-note))
+
+# Sequence of chromatic notes (starting from lowest C, and then spread until the highest C) :
+# Trombone notes format : [Bar (time), Length, Pitch Start, Pitch Delta (angle), Pitch End] /!\ here, a bar is actually one beat, not 4 beats as we could expect (if signature is 4/4)
+# All notes are 13.75 apart, starting from -165 for lowest C.
+# tromboneChromaticSequence = [[1,0.5,-165,0,-165],[1.5,0.5,-151.25,0,-151.25],[2,0.5,-137.5,0,-137.5],[2.5,0.5,-123.75,0,-123.75],[3,0.5,-110,0,-110],[3.5,0.5,-96.25,0,-96.25],[4,0.5,-82.5,0,-82.5],[4.5,0.5,-68.75,0,-68.75],[5,0.5,-55,0,-55],[5.5,0.5,-41.25,0,-41.25],[6,0.5,-27.5,0,-27.5],[6.5,0.5,-13.75,0,-13.75],[7,0.5,0,0,0],[7.5,0.5,13.75,0,13.75],[8,0.5,27.5,0,27.5],[8.5,0.5,41.25,0,41.25],[9,0.5,55,0,55],[9.5,0.5,68.75,0,68.75],[10,0.5,82.5,0,82.5],[10.5,0.5,96.25,0,96.25],[11,0.5,110,0,110],[11.5,0.5,123.75,0,123.75],[12,0.5,137.5,0,137.5],[12.5,0.5,151.25,0,151.25],[13,0.5,165,0,165]] # regex to get the note : (\[.*?\],){13} (1 is the lowest C, 13 is the middle C) or "notes":\[(\[.*?\], ){13} in tmb file
 
 # Set manually bpm of the map ; if used an osu file, go to [TimingPoints] and take the second value as beatDurationInMS, then bpm = 60/(beatDurationInMS/1000)
 mapBPM = 160.5
@@ -28,6 +63,9 @@ fullHDCoordinates = [lerpAxis(y,0,384,125,125+841) for y in yNormalized]
 # Let's convert from Full HD to pitch (yea i assume you all have a full HD resolution for now) : lowest octave is at y = 935 pixels and highest octave is at 145 pixels
 pitchList = [lerpAxis(y,145,935,165,-165) for y in fullHDCoordinates]
 pitchList = [round(e,2) for e in pitchList]
+scalePitchList = getPitchForScale("major", "Db")
+scalePitchList = periodizeSerie(scalePitchList, 1) # spread it on the other octave (higher)
+quantizedPitchStartList = [quantizeNote(n, scalePitchList) for n in pitchList]
 
 # Generate the Trombone champ file :
 author = "Peter Lambert"
@@ -44,7 +82,7 @@ trackRef = "osu!Tootorial" # folder name must match !
 desc1 = '{"UNK1":0,"author": "' + author + '","description":"' + description + '","difficulty":'+ str(difficulty) +',"endpoint":' + str(endpoint) + ',"genre":"' + genre + '","lyrics":[],"name":"' + name + '","notes":'
 desc2 = ',"savednotespacing":120,"shortName":"' + shortName + '","tempo":' + str(mapBPM) + ',"timesig":2,"trackRef":"' + trackRef + '","year":' + str(year) + '}'
 notes = []
-for timeAsbars,pitch in zip(mapTimingsInBars, pitchList):
+for timeAsbars,pitch in zip(mapTimingsInBars, quantizedPitchStartList):
     notes.append([timeAsbars, minimalDurationInBars, pitch, 0, pitch])
 finalFileString = desc1 + str(notes) + desc2
 with open("song.tmb", 'w') as f:
