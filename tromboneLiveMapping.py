@@ -10,6 +10,8 @@ import pdb
 #   - extract melody (highest notes) from a midi
 #   - arpeggiator
 
+# repeat a note pattern : (np.array(listOfNotes) + [shiftingInBeats,shiftingInPitch,0,shiftingInPitch,0]).tolist()
+
 scaleIntervals = { # in half tones ; add octave (0+12) for repeating pattern without losing a note
     "chromatic" : [0,1,2,3,4,5,6,7,8,9,10,11,12],
     "major" : [0,2,4,5,7,9,11,12],
