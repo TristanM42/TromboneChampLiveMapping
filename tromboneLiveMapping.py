@@ -77,10 +77,26 @@ mapTimingsInBars = list(map(timeToBar, mapTimings))
 barOffset = mapTimingsInBars[0] - 4
 mapTimingsInBars = [b - barOffset for b in mapTimingsInBars]
 mapTimingsInBars = [round(e,2) for e in mapTimingsInBars]
+
+# Calculate the duration of the note, given by the closest time where a key is released or slider change direction
 mapTimingsInBarsWithDuration = []
-# for i in range(round(len(mapTimingsInBars)/2)):
-#     mapTimingsInBarsWithDuration.append((mapTimingsInBars[2*i], mapTimingsInBars[2*i+1])) # TODO : this trick can also work for simple sliders, but if the slider oscillates we must break it into multiple sliders, but while holding the key, so the big change will be to record mouse move as well to detect extremums
-fullHDCoordinates
+actions = rec.seq.actions
+i = 0
+currentAction = None
+while i < len(mapTimingsInBars):
+    slopeRef = yList[i+1] - yList[i]
+    x = 1
+    while True:
+        slope = yList[i+x+1] - yList[i+x] 
+        if slope/slopeRef < 0:
+            break
+        currentAction = actions[i+x][0]
+        if currentAction == 'w' or currentAction == 'x':
+            if actions[i+x][1] == False:
+                break
+        x += 1
+    mapTimingsInBarsWithDuration.append((mapTimingsInBars[i], mapTimingsInBars[i+x]))
+    i = i+x
 
 # Generate the Trombone champ file :
 author = "Peter Lambert"
