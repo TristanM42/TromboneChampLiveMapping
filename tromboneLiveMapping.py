@@ -83,26 +83,31 @@ mapTimingsInBarsWithDuration = []
 actions = rec.seq.actions
 i = 0
 currentAction = None
+lastDurationWasFromButtonUp = True
 while i < len(mapTimingsInBars):
-    if not (actions[i][0] == 'Button.right' or actions[i][0] == 'Button.left' and actions[i][1] == True):
-        i += 1
-        continue
+    if lastDurationWasFromButtonUp:
+        if not (actions[i][0] == 'Button.right' or actions[i][0] == 'Button.left' and actions[i][1] == True):
+            i += 1
+            continue
     slopeRef = yList[i+1] - yList[i]
     x = 1
     while True:
         slope = yList[i+x+1] - yList[i+x]
         if slopeRef != 0: 
             if slope/slopeRef <= 0:
+                lastDurationWasFromButtonUp = False
                 break
         elif slope != 0: 
             if slopeRef/slope <= 0:
+                lastDurationWasFromButtonUp = False
                 break
         currentAction = actions[i+x][0]
         if currentAction == 'Button.right' or currentAction == 'Button.left':
             if actions[i+x][1] == False:
+                lastDurationWasFromButtonUp = True
                 break
         x += 1
-    mapTimingsInBarsWithDuration.append((mapTimingsInBars[i], mapTimingsInBars[i+x]))
+    mapTimingsInBarsWithDuration.append((mapTimingsInBars[i], mapTimingsInBars[i+x] - mapTimingsInBars[i]))
     i = i+x
 
 # Generate the Trombone champ file :
