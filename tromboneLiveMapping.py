@@ -51,7 +51,7 @@ def quantizeNote(note, scalePitchList):
 mapBPM = 185
 
 # Record keyboard times and mouse positions
-rec = Recorder(mode='6') 
+rec = Recorder(mode='6')
 rec.startThreads() # /!\ blocking instruction, press escape to finish the recording
 
 # Convert Y axis to MIDI pitch : if using osu file, we probably need to convert from normalized space to Full HD resolution : "equivalent to a pixel when osu! is running in 640x480 resolution" => actually, max limits in x,y = (512,384) + invert y axis
@@ -87,9 +87,13 @@ while i < len(mapTimingsInBars):
     slopeRef = yList[i+1] - yList[i]
     x = 1
     while True:
-        slope = yList[i+x+1] - yList[i+x] 
-        if slope/slopeRef < 0:
-            break
+        slope = yList[i+x+1] - yList[i+x]
+        if slopeRef != 0: 
+            if slope/slopeRef <= 0:
+                break
+        elif slope != 0: 
+            if slopeRef/slope <= 0:
+                break
         currentAction = actions[i+x][0]
         if currentAction == 'w' or currentAction == 'x':
             if actions[i+x][1] == False:
