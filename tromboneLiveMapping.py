@@ -84,6 +84,9 @@ actions = rec.seq.actions
 i = 0
 currentAction = None
 while i < len(mapTimingsInBars):
+    if not (actions[i][0] == 'Button.right' or actions[i][0] == 'Button.left' and actions[i][1] == True):
+        i += 1
+        continue
     slopeRef = yList[i+1] - yList[i]
     x = 1
     while True:
@@ -95,7 +98,7 @@ while i < len(mapTimingsInBars):
             if slopeRef/slope <= 0:
                 break
         currentAction = actions[i+x][0]
-        if currentAction == 'w' or currentAction == 'x':
+        if currentAction == 'Button.right' or currentAction == 'Button.left':
             if actions[i+x][1] == False:
                 break
         x += 1
