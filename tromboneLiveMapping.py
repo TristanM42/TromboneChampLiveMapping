@@ -43,7 +43,7 @@ def quantizeNote(note, scalePitchList):
     return min(scalePitchList, key=lambda x:abs(x-note))
 
 # Sequence of chromatic notes (starting from lowest C, and then spread until the highest C) :
-# Trombone notes format : [Bar (time), Length, Pitch Start, Pitch Delta (angle), Pitch End] /!\ here, a bar is actually one beat, not 4 beats as we could expect (if signature is 4/4) ; pitch delta should be pitch start - pitch end
+# Trombone notes format : [Bar (time), Length, Pitch Start, Pitch Delta (angle), Pitch End] /!\ here, a bar is actually one beat, not 4 beats as we could expect (if signature is 4/4) ; pitch delta should be pitch end - pitch start
 # All notes are 13.75 apart, starting from -165 for lowest C.
 # tromboneChromaticSequence = [[1,0.5,-165,0,-165],[1.5,0.5,-151.25,0,-151.25],[2,0.5,-137.5,0,-137.5],[2.5,0.5,-123.75,0,-123.75],[3,0.5,-110,0,-110],[3.5,0.5,-96.25,0,-96.25],[4,0.5,-82.5,0,-82.5],[4.5,0.5,-68.75,0,-68.75],[5,0.5,-55,0,-55],[5.5,0.5,-41.25,0,-41.25],[6,0.5,-27.5,0,-27.5],[6.5,0.5,-13.75,0,-13.75],[7,0.5,0,0,0],[7.5,0.5,13.75,0,13.75],[8,0.5,27.5,0,27.5],[8.5,0.5,41.25,0,41.25],[9,0.5,55,0,55],[9.5,0.5,68.75,0,68.75],[10,0.5,82.5,0,82.5],[10.5,0.5,96.25,0,96.25],[11,0.5,110,0,110],[11.5,0.5,123.75,0,123.75],[12,0.5,137.5,0,137.5],[12.5,0.5,151.25,0,151.25],[13,0.5,165,0,165]] # regex to get the note : (\[.*?\],){13} (1 is the lowest C, 13 is the middle C) or "notes":\[(\[.*?\], ){13} in tmb file
 
@@ -51,13 +51,13 @@ def quantizeNote(note, scalePitchList):
 mapBPM = 185
 
 # Record keyboard times and mouse positions
-rec = Recorder(mode='6')
+rec = Recorder(mode='6' ,framerate=53.4)
 rec.startThreads() # /!\ blocking instruction, press escape to finish the recording
 
 # Convert Y axis to MIDI pitch : if using osu file, we probably need to convert from normalized space to Full HD resolution : "equivalent to a pixel when osu! is running in 640x480 resolution" => actually, max limits in x,y = (512,384) + invert y axis
 # yNormalized = [96, 103, 129, 157, 129, 103, 96, 76, 154, 200, 257, 76, 76, 76, 76, 76, 76, 76, 76, 76, 76, 76, 74, 74, 74, 74, 74, 74, 96, 104, 123, 157, 124, 102, 93, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 96, 103, 129, 157, 129, 103, 96, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 96, 104, 123, 157, 124, 102, 93, 257, 152, 73, 159, 72, 256, 153, 72, 258, 153, 74, 155, 77, 256, 156, 75, 255, 153, 72, 154, 259, 258, 153, 72, 87, 96, 124, 157, 122, 93, 76, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 96, 104, 123, 157, 124, 102, 93, 80, 92, 124, 95, 92, 124, 154, 124, 124, 154, 167, 154, 87, 96, 124, 157, 122, 93, 76, 94, 125, 95, 92, 124, 154, 124, 124, 154, 167, 154, 87, 96, 124, 157, 122, 93, 76] # regex : "^\d+,(\d+),\d+,.*$\n" and keep group 1
 # fullHDCoordinates = [lerpAxis(y,0,384,125,125+841) for y in yNormalized]
-fullHDCoordinates = rec.seq.mousePosition[1:]
+fullHDCoordinates = rec.seq.mousePosition
 yList = [pos[1] for pos in fullHDCoordinates]
 # ylistInverted = [1080-y for y in yList]
 # Let's convert from Full HD to pitch (yea i assume you all have a full HD resolution for now) : lowest octave is at y = 935 pixels and highest octave is at 145 pixels
@@ -79,11 +79,15 @@ mapTimingsInBars = [b - barOffset for b in mapTimingsInBars]
 mapTimingsInBars = [round(e,2) for e in mapTimingsInBars]
 
 # Calculate the duration of the note, given by the closest time where a key is released or slider change direction
-mapTimingsInBarsWithDuration = []
+notes = [] # Trombone Champ format : [Bar (time), Length, Pitch Start, Pitch Delta (angle), Pitch End]
 actions = rec.seq.actions
 i = 0
 currentAction = None
 lastDurationWasFromButtonUp = True
+duration = None
+pitchStart = None
+pitchEnd = None
+pitchDelta = None
 while i < len(mapTimingsInBars):
     if lastDurationWasFromButtonUp:
         if not (actions[i][0] == 'Button.right' or actions[i][0] == 'Button.left' and actions[i][1] == True):
@@ -107,7 +111,12 @@ while i < len(mapTimingsInBars):
                 lastDurationWasFromButtonUp = False
                 break
         x += 1
-    mapTimingsInBarsWithDuration.append((mapTimingsInBars[i], mapTimingsInBars[i+x] - mapTimingsInBars[i]))
+    start = mapTimingsInBars[i]
+    duration = mapTimingsInBars[i+x] - start
+    pitchStart = quantizedPitchStartList[i]
+    pitchEnd = quantizedPitchStartList[i+x]
+    pitchDelta = pitchEnd - pitchStart
+    notes.append([start, duration, pitchStart, pitchDelta, pitchEnd])
     i = i+x
 
 # Generate the Trombone champ file :
@@ -124,9 +133,6 @@ trackRef = "osu!Tootorial" # folder name must match !
 
 desc1 = '{"UNK1":0,"author": "' + author + '","description":"' + description + '","difficulty":'+ str(difficulty) +',"endpoint":' + str(endpoint) + ',"genre":"' + genre + '","lyrics":[],"name":"' + name + '","notes":'
 desc2 = ',"savednotespacing":120,"shortName":"' + shortName + '","tempo":' + str(mapBPM) + ',"timesig":2,"trackRef":"' + trackRef + '","year":' + str(year) + '}'
-notes = []
-for timeAsbarsWithDuration,pitch in zip(mapTimingsInBarsWithDuration, quantizedPitchStartList):
-    notes.append([timeAsbarsWithDuration[0], timeAsbarsWithDuration[1], pitch, 0, pitch])
 finalFileString = desc1 + str(notes) + desc2
 with open("song.tmb", 'w') as f:
     f.write(finalFileString)
