@@ -92,6 +92,11 @@ while i < len(mapTimingsInBars):
     slopeRef = yList[i+1] - yList[i]
     x = 1
     while True:
+        currentAction = actions[i+x][0]
+        if currentAction == 'Button.right' or currentAction == 'Button.left':
+            if actions[i+x][1] == False:
+                lastDurationWasFromButtonUp = True
+                break
         slope = yList[i+x+1] - yList[i+x]
         if slopeRef != 0: 
             if slope/slopeRef <= 0:
@@ -100,11 +105,6 @@ while i < len(mapTimingsInBars):
         elif slope != 0: 
             if slopeRef/slope <= 0:
                 lastDurationWasFromButtonUp = False
-                break
-        currentAction = actions[i+x][0]
-        if currentAction == 'Button.right' or currentAction == 'Button.left':
-            if actions[i+x][1] == False:
-                lastDurationWasFromButtonUp = True
                 break
         x += 1
     mapTimingsInBarsWithDuration.append((mapTimingsInBars[i], mapTimingsInBars[i+x] - mapTimingsInBars[i]))
