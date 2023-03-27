@@ -1,5 +1,4 @@
-import pdb
-from CodeHelpers.lib.recorder import Recorder
+from recorder import Recorder
 
 ''' Map an axis coordinates to notes (= pitch, in Trombone champ unit) and create the Trombone champ map file. '''
 
