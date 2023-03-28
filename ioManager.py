@@ -6,7 +6,6 @@ from pynput import keyboard
 from pynput.mouse import Button
 from pynput.keyboard import Key
 
-from lib.debug import *
 from enum import Enum
 import time
 
@@ -31,13 +30,13 @@ class InputManager:
     def on_press(self, key):
         if key == keyboard.Key.esc:
             # Stop listener
-            printDebug("Aborted")
+            print("Aborted")
             return False
         if(str(key)[0]!='K'):
             self.keyAsStr = '{0}'.format(key.char)
         else:
             self.keyAsStr = str('{0}'.format(key))
-        printDebug("key pressed = ", self.keyAsStr)
+        print("key pressed = ", self.keyAsStr)
         if self.mode == self.Mode.waitForKeys:
             if self.keyAsStr in self.currentKeys: return False
         if self.mode == self.Mode.signal:
@@ -48,7 +47,7 @@ class InputManager:
             self.keyAsStr = '{0}'.format(key.char)
         else:
             self.keyAsStr = str('{0}'.format(key))
-        printDebug("key released = ", self.keyAsStr)
+        print("key released = ", self.keyAsStr)
 
     def waitForKey(self, *keys):
         self.mode = self.Mode.waitForKeys

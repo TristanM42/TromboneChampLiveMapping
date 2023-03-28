@@ -1,0 +1,5 @@
+dist/tromboneLiveMapping/libcrypto-1_1.dll filter=lfs diff=lfs merge=lfs -text
+dist/tromboneLiveMapping/libopenblas.FB5AE2TYXYH2IJRDKGDGQ3XBKLKTF43H.gfortran-win_amd64.dll filter=lfs diff=lfs merge=lfs -text
+dist/tromboneLiveMapping/numpy/core/_multiarray_umath.cp38-win_amd64.pyd filter=lfs diff=lfs merge=lfs -text
+dist/tromboneLiveMapping/python38.dll filter=lfs diff=lfs merge=lfs -text
+dist/tromboneLiveMapping/tromboneLiveMapping.exe filter=lfs diff=lfs merge=lfs -text

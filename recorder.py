@@ -7,10 +7,8 @@ from pynput import keyboard, mouse
 from pynput.mouse import Button, Controller
 from pynput.keyboard import Key
 
-import pdb
 import pickle
 import time
-import inspect
 import ctypes
 import threading
 
