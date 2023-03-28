@@ -23,7 +23,7 @@ import threading
 #   - osu mode : only one press event until release ( = keys converted to click)
 #   - compiled with pyinstaller, but not so much speed gain
 #   - log "move" only once
-#   - trombone champ mode : start on first key pressed, but don't register mouse move
+#   - trombone champ mode : start on first key pressed and register mouse move (to detect sliders extremums), but limiting mouse move events at a maximum framerate of 53.4 fps (obtained from 200 bpm divided by 16 : 1/((60/200)/16)) or 27 fps for 8 division.
 
 # === Features coming ===
 #   - hotkeys mapping needed (key 'x01' = ctrl + a, ...)
@@ -53,7 +53,7 @@ class Recorder:
 
     class Sequence:
 
-        def __init__(self, mode=None):
+        def __init__(self, mode=None, framerate=1000):
             self.eventIndex = 0
             self.mode = '2'
             self.start_time = 0
@@ -63,6 +63,7 @@ class Recorder:
             self.lockedOn = {}
             self.startFlag = False
             self.lastButtonEventState = None
+            self.framerate = framerate
 
             if(mode==None):
                 print("Recorder mode ? (1 = fast ; 2 = tutorial ; 3 = real time ; 4 = custom/song like ; 5 = osu ; 6 = Trombone Champ)")
@@ -70,9 +71,6 @@ class Recorder:
                 if(self.mode=='5'): print("osu mode : Press w, x or space to start at first circle")
             else:
                 self.mode = mode
-            self.mousePosition.append(mouseController.position)
-            self.actions.append(('init',))
-            self.timeFromStart.append(0)
             self.osuClickIsLeft = True
 
         def handleEvent(self, key, pressed, timeEvent, x=None, y=None):
@@ -87,12 +85,13 @@ class Recorder:
                 else:
                     self.start_time = time.time()
                     print(str(self.start_time) + " ; " + str(timeEvent))
+                    self.nextTime = self.start_time + 1/self.framerate
                     self.startFlag = True
             if(self.readOnly == True): return False
-            if(self.mode == '6' and key=='move'): return False
+            if (key=='move' and time.time() < self.nextTime): return
             self.checkLock(key)
             if(x == y == None):
-                (x, y) = self.mousePosition[-1]
+                (x, y) = self.mousePosition[-1] if len(self.mousePosition) > 0 else mouseController.position
             self.customAction(key, pressed, timeEvent, x, y)
 
         def checkLock(self, key):
@@ -114,10 +113,7 @@ class Recorder:
                         self.actions.append(('Button.left',pressed) if(self.osuClickIsLeft) else ('Button.right',pressed))
                         print(self.actions[-1])
                     self.timeFromStart.append(timeEvent-self.start_time)
-                    if(self.mode == '5'):
-                        self.mousePosition.append((x,y))
-                        return
-                    self.mousePosition.append(mouseController.position)
+                    self.mousePosition.append((x,y))
                 elif(self.mode == '3'):
                     if (key != 'move' or self.actions[-1][0] != 'move'):
                         print("key pressed = " + key)
@@ -129,6 +125,10 @@ class Recorder:
                 elif(self.lockedOn[key]==False):
                     self.lockedOn[key] = True
                 # if(self.mode == ...
+
+            if key=='move':
+                self.nextTime = self.timeFromStart[-1] + 1/self.framerate + self.start_time
+
 
 
     # Keyboards events :
@@ -226,10 +226,10 @@ class Recorder:
         t.join()
 
 
-    def __init__(self, seqR=None, mode=None):
+    def __init__(self, seqR=None, mode=None, framerate=1000):
         self.recorderExitSignalSent = False
         if(seqR==None):
-            self.seq = self.Sequence(mode)
+            self.seq = self.Sequence(mode, framerate)
         else:
             self.seq = seqR
         self.seq.readOnly = False
