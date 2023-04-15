@@ -173,8 +173,7 @@ if __name__ == "__main__":
     author = "Peter Lambert"
     description = "A map based on osu! tutorial, that you can play as if you would have a mouse, even though x axis does not matter."
     difficulty = 7
-    minimalDurationInBars = 0.25
-    endpoint = mapTimingsInBars[-1] + minimalDurationInBars # = last note timing + its duration (assuming that we only simple hits, refactor later for holding a note)
+    endpoint = notes[-1][0] + notes[-1][1]
     genre = "Video game"
     name = "osu! Tootorial"
     shortName = name
