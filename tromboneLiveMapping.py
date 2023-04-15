@@ -2,6 +2,8 @@ from recorder import Recorder
 import json
 import numpy as np
 from ioManager import InputManager
+import pickle
+import os
 
 ''' Map an axis coordinates to notes (= pitch, in Trombone champ unit) and create the Trombone champ map file. '''
 
@@ -62,6 +64,9 @@ def correctOffset(songname):
         json.dump(pyson, f, separators=(',', ':'))
         f.truncate()
 
+def excepthook(type, value, traceback):
+    pdb.post_mortem(traceback)
+
 # Sequence of chromatic notes (starting from lowest C, and then spread until the highest C) :
 # Trombone notes format : [Bar (time), Length, Pitch Start, Pitch Delta (angle), Pitch End] /!\ here, a bar is actually one beat, not 4 beats as we could expect (if signature is 4/4) ; pitch delta should be pitch end - pitch start
 # All notes are 13.75 apart, starting from -165 for lowest C.
@@ -77,9 +82,23 @@ if __name__ == "__main__":
     # Set manually bpm of the map ; if used an osu file, go to [TimingPoints] and take the second value as beatDurationInMS, then bpm = 60/(beatDurationInMS/1000)
     mapBPM = 185
 
+    seqFile = 'pickled_sequence.pkl'
+    lastMappingCrashedAfterRecord = os.path.isfile(seqFile)
+    rec = None
+    if lastMappingCrashedAfterRecord:
+        seqR = None
+        with open(seqFile, mode='rb') as binary_file:
+            seqR = pickle.load(binary_file)
+        rec = Recorder(seqR)
+        import pdb
+        import sys
+        sys.excepthook = excepthook
+    else:
     # Record keyboard times and mouse positions
     rec = Recorder(mode='6' ,framerate=53.4)
     rec.startThreads() # /!\ blocking instruction, press escape to finish the recording
+        with open(seqFile, mode='wb') as binary_file:
+            pickle.dump(rec.seq, binary_file)
 
     # Convert Y axis to MIDI pitch : if using osu file, we probably need to convert from normalized space to Full HD resolution : "equivalent to a pixel when osu! is running in 640x480 resolution" => actually, max limits in x,y = (512,384) + invert y axis
     # yNormalized = [96, 103, 129, 157, 129, 103, 96, 76, 154, 200, 257, 76, 76, 76, 76, 76, 76, 76, 76, 76, 76, 76, 74, 74, 74, 74, 74, 74, 96, 104, 123, 157, 124, 102, 93, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 96, 103, 129, 157, 129, 103, 96, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 96, 104, 123, 157, 124, 102, 93, 257, 152, 73, 159, 72, 256, 153, 72, 258, 153, 74, 155, 77, 256, 156, 75, 255, 153, 72, 154, 259, 258, 153, 72, 87, 96, 124, 157, 122, 93, 76, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 72, 256, 153, 72, 153, 72, 256, 153, 96, 104, 123, 157, 124, 102, 93, 80, 92, 124, 95, 92, 124, 154, 124, 124, 154, 167, 154, 87, 96, 124, 157, 122, 93, 76, 94, 125, 95, 92, 124, 154, 124, 124, 154, 167, 154, 87, 96, 124, 157, 122, 93, 76] # regex : "^\d+,(\d+),\d+,.*$\n" and keep group 1
@@ -166,3 +185,6 @@ if __name__ == "__main__":
     finalFileString = desc1 + str(notes) + desc2
     with open("song.tmb", 'w') as f:
         f.write(finalFileString)
+
+    if lastMappingCrashedAfterRecord:
+        os.remove(seqFile)
