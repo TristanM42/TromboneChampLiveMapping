@@ -189,5 +189,4 @@ if __name__ == "__main__":
     with open("song.tmb", 'w') as f:
         f.write(finalFileString)
 
-    if lastMappingCrashedAfterRecord:
-        os.remove(seqFile)
+    os.remove(seqFile)
