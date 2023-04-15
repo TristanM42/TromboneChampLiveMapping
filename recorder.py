@@ -12,7 +12,7 @@ import time
 import ctypes
 import threading
 
-# version : 1d26da7a2368e5fe013ca1615e5c98452edc10cf
+# version : 7391ed1a97877bfdbba9213807178d7cf0020cfd
 
 # Current features :
 #   - record and play in real time actions : typing, clicking, scrolling
@@ -106,10 +106,12 @@ class Recorder:
                 if(self.mode == '5' or self.mode == '6'):
                     if(key=='move'):
                         self.actions.append((key,))
-                    elif(len(key)==1):
+                    elif(len(key)==1 or key=='Button.left' or key=='Button.right'):
                         self.osuClickIsLeft = not self.osuClickIsLeft
                         self.actions.append(('Button.left',pressed) if(self.osuClickIsLeft) else ('Button.right',pressed))
                         print(self.actions[-1])
+                    else:
+                        return
                     self.timeFromStart.append(timeEvent-self.start_time)
                     self.mousePosition.append((x,y))
                 elif(self.mode == '3'):
