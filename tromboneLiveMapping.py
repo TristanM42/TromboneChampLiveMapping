@@ -57,9 +57,13 @@ def correctOffset(songname):
         print("Time offset = ", timeInSeconds, flush=True)
         timeToBar = lambda time : (time*mapBPM/60)
         mapBPM = pyson["tempo"]
+        endpoint = pyson["endpoint"]
         notes = np.array(pyson["notes"])
-        notes[:,0] -= timeToBar(timeInSeconds)
+        timeOffset = timeToBar(timeInSeconds)
+        notes[:,0] -= timeOffset
+        endpoint -= timeOffset
         pyson["notes"] = np.round(notes,2).tolist()
+        pyson["endpoint"] = np.round(endpoint,2)
         f.seek(0)
         json.dump(pyson, f, separators=(',', ':'))
         f.truncate()
@@ -94,9 +98,9 @@ if __name__ == "__main__":
         import sys
         sys.excepthook = excepthook
     else:
-    # Record keyboard times and mouse positions
-    rec = Recorder(mode='6' ,framerate=53.4)
-    rec.startThreads() # /!\ blocking instruction, press escape to finish the recording
+        # Record keyboard times and mouse positions
+        rec = Recorder(mode='6' ,framerate=53.4)
+        rec.startThreads() # /!\ blocking instruction, press escape to finish the recording
         with open(seqFile, mode='wb') as binary_file:
             pickle.dump(rec.seq, binary_file)
 
